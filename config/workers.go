@@ -5,13 +5,5 @@ import (
 )
 
 const (
-	WorkerAPIServer     uwe.WorkerName = "api-server"
-	WorkerNATSPublisher uwe.WorkerName = "nats-publisher"
+	WorkerAPIServer uwe.WorkerName = "api-server"
 )
-
-func availableWorkers() map[uwe.WorkerName]struct{} {
-	return map[uwe.WorkerName]struct{}{
-		WorkerAPIServer:     {},
-		WorkerNATSPublisher: {},
-	}
-}

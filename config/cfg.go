@@ -5,7 +5,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/lancer-kit/armory/log"
-	"github.com/lancer-kit/uwe/v2"
+	"github.com/lancer-kit/noble"
 	"github.com/lancer-kit/uwe/v2/presets/api"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -15,32 +15,39 @@ const FlagConfig = "config"
 
 // Cfg main structure of the app configuration.
 type Cfg struct {
-	API     api.Config  `yaml:"api"`
-	CouchDB string      `yaml:"couchdb"` // CouchDB is a couchdb url connection string.
-	Log     log.NConfig `yaml:"log"`
+	API   api.Config  `yaml:"api"`
+	Mongo MongoConf   `yaml:"mongo"`
+	Log   log.NConfig `yaml:"log"`
 
 	DevMode             bool `yaml:"dev_mode"`
 	ServicesInitTimeout int  `yaml:"services_init_timeout"`
-
-	// Workers is a list of workers
-	// that must be started, start all if empty.
-	Workers []string `yaml:"workers"`
 }
 
 // Validate is an implementation of Validatable interface from ozzo-validation.
 func (cfg Cfg) Validate() error {
 	return validation.ValidateStruct(&cfg,
 		validation.Field(&cfg.ServicesInitTimeout, validation.Required),
-		validation.Field(&cfg.CouchDB, validation.Required),
+		validation.Field(&cfg.Mongo, validation.Required),
 		validation.Field(&cfg.API, validation.Required),
-		validation.Field(&cfg.Workers, &uwe.WorkerExistRule{AvailableWorkers: availableWorkers()}),
+		validation.Field(&cfg.Log, validation.Required),
 	)
 }
 
-func (cfg Cfg) FillDefaultWorkers() {
-	for k := range availableWorkers() {
-		cfg.Workers = append(cfg.Workers, string(k))
-	}
+type MongoConf struct {
+	Host     string       `yaml:"host"`
+	Port     int          `yaml:"port"`
+	Database string       `yaml:"database"`
+	Username noble.Secret `yaml:"username"`
+	Password noble.Secret `yaml:"password"`
+}
+
+// Validate is an implementation of Validatable interface from ozzo-validation.
+func (cfg MongoConf) Validate() error {
+	return validation.ValidateStruct(&cfg,
+		validation.Field(&cfg.Host, validation.Required),
+		validation.Field(&cfg.Port, validation.Required),
+		validation.Field(&cfg.Database, validation.Required),
+	)
 }
 
 func ReadConfig(path string) (Cfg, error) {
@@ -69,7 +76,6 @@ func ReadConfig(path string) (Cfg, error) {
 	})
 	if err != nil {
 		return Cfg{}, errors.Wrap(err, "unable to init log")
-
 	}
 
 	return *config, nil

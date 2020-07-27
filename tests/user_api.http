@@ -1,0 +1,52 @@
+GET http://localhost:80/status
+Accept: */*
+Content-Type: application/json
+
+###
+
+POST http://localhost:80/create_account
+Accept: */*
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "my-super-secure-password"
+}
+
+###
+
+POST http://localhost:80/authenticate
+Accept: */*
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "my-superdasdsadsds-secure-password"
+}
+
+### {
+###   "code": 401,
+###   "message": "Action Unauthorized",
+###   "errmsg": "invalid password"
+### }
+
+###
+
+POST http://localhost:80/authenticate
+Accept: */*
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "my-super-secure-password"
+}
+
+### {
+###   "ID": "000000000000000000000000",
+###   "Email": "john.doe@example.com",
+###   "PasswordHash": "13e9519c714fc68b48a8b1cf7f2442803f10...",
+###   "CreatedAt": "2020-07-27T12:45:50.124Z",
+###   "UpdatedAt": "2020-07-27T12:45:50.124Z"
+### }
+
+###

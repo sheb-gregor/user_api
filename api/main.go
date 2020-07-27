@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"user_api/api/handler"
 	"user_api/config"
+	"user_api/repo"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -17,14 +19,10 @@ import (
 )
 
 func GetServer(cfg *config.Cfg, logger *logrus.Entry, ) *api.Server {
-	return api.NewServer(cfg.API, getRouter(cfg, logger))
-}
-
-func getRouter(cfg *config.Cfg, logger *logrus.Entry) http.Handler {
-	r := chi.NewRouter()
+	mux := chi.NewRouter()
 
 	// A good base middleware stack
-	r.Use(
+	mux.Use(
 		middleware.Recoverer,
 		middleware.RequestID,
 		middleware.RealIP,
@@ -32,7 +30,7 @@ func getRouter(cfg *config.Cfg, logger *logrus.Entry) http.Handler {
 	)
 
 	if cfg.API.EnableCORS {
-		r.Use(getCORS().Handler)
+		mux.Use(getCORS().Handler)
 	}
 
 	// Set a timeout value on the request context (ctx), that will signal
@@ -40,34 +38,30 @@ func getRouter(cfg *config.Cfg, logger *logrus.Entry) http.Handler {
 	// processing should be stopped.
 	if cfg.API.ApiRequestTimeout > 0 {
 		t := time.Duration(cfg.API.ApiRequestTimeout)
-		r.Use(middleware.Timeout(t * time.Second))
+		mux.Use(middleware.Timeout(t * time.Second))
 	}
 
-	h := handler.NewHandler(cfg, logger)
+	mongoRepo, err := repo.NewMongoRepo(context.TODO(), cfg.Mongo)
+	if err != nil {
+		logger.WithError(err).Fatal("unable to init mongo repo")
+	}
 
-	r.Route("/", func(r chi.Router) {
+	h := handler.NewHandler(mongoRepo, logger)
+	mux.Route("/", func(r chi.Router) {
 		r.Get("/status", func(w http.ResponseWriter, r *http.Request) {
 			render.Success(w, config.AppInfo())
 		})
-
-		r.Route("/users", func(r chi.Router) {
-			r.Post("/", h.AddUserInfo)
-			r.Get("/", h.GetAllUserInfo)
-
-			r.Route("/{id}", func(r chi.Router) {
-				r.Get("/", h.GetUserInfo)
-				r.Put("/", h.ChangeUserInfo)
-				r.Delete("/", h.DeleteUserInfo)
-			})
-		})
+		r.Post("/create_account", h.CreateUser)
+		r.Post("/authenticate", h.Authenticate)
 
 	})
 
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+	mux.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		render.ResultNotFound.Render(w)
 	})
 
-	return r
+	logger.Info("router initialized; starting API server...")
+	return api.NewServer(cfg.API, mux)
 }
 
 func getCORS() *cors.Cors {

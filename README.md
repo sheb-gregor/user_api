@@ -7,7 +7,7 @@ This is a project example build with Lancer-Kit tool set.
 1. Clone this repo:
 
 ```shell script
-git clone https://github.com/user_api
+git clone https://github.com/sheb-gregor/user_api
 cd user_api
 ```
 

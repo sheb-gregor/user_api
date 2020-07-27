@@ -21,6 +21,7 @@ function git_tag() {
     fi
 }
 
+SERVICE="user_api"
 ## version must be patched manually
 VERSION=1.1.0
 ## extract short hash of the current commit
@@ -29,8 +30,15 @@ COMMIT=$(git_commit)
 TAG=$(git_tag)
 
 
-PKG=user_api/config
+PKG=$SERVICE/config
 LD_FLAG="-X ${PKG}.version=$VERSION -X ${PKG}.build=$COMMIT -X ${PKG}.tag=$TAG"
+
+if [ "$SERVICE_SALT" != "" ]; then
+  # this is compile-time injection of secret salt for passwords hashing
+  LD_FLAG="${LD_FLAG}  -X ${SERVICE}/repo/models.salt=${SERVICE_SALT}"
+  exit 0
+fi
+
 
 if [ "$1" != "" ]; then
   go build -o "${1}" -ldflags "$LD_FLAG" .

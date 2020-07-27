@@ -37,6 +37,7 @@ func serveAction(c *cli.Context) error {
 	chief.AddWorker(config.WorkerAPIServer,
 		api.GetServer(cfg, logger.WithField("worker", config.WorkerAPIServer)))
 
+	chief.Run()
 
 	return nil
 }
